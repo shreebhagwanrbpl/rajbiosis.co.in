@@ -41,7 +41,7 @@ export default function Navbar() {
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
     { name: "Services", path: "/services" },
-    { name: "Products", path: "/items" },
+    { name: "Products", path: "/products" },
     { name: "Contact", path: "/contact" },
   ];
 
@@ -50,13 +50,12 @@ export default function Navbar() {
       <div className="container-custom h-20 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href={makeLink("/")}>
-          <h1 className="text-xl md:text-2xl font-bold text-sky-700">
-            Central
-            <span className="text-slate-900">
-              {" "}Biomedicals
-            </span>
-          </h1>
+        <Link href={makeLink("/")} className="flex items-center">
+          <img
+            src="/logo.png"
+            alt="Raj Biosis"
+            className="h-11 md:h-14 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop Menu */}

@@ -242,3 +242,17 @@ header {
       transparent);
   animation: shimmer 1.8s infinite;
 }
+
+/* Raj Biosis distinct visual refinement */
+:root {
+  --rb-radius: 18px;
+}
+.site1-static .card-shadow {
+  border-radius: var(--rb-radius);
+}
+.site1-static .rounded-3xl {
+  border-radius: var(--rb-radius);
+}
+.site1-static .rounded-\[40px\] {
+  border-radius: 18px;
+}

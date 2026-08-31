@@ -1,4 +1,4 @@
-import ProductDetails from "./ProductDetails";
+import ProductDetails from "../../items/[slug]/ProductDetails";
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 
 export async function generateMetadata({ params }) {
@@ -22,11 +22,10 @@ export async function generateMetadata({ params }) {
       imageUrl = product.image || (product.images && product.images[0]) || imageUrl;
     }
   } catch (error) {
-    console.error("Error generating metadata for product page:", error);
+    console.error("Error generating metadata for products/[slug] page:", error);
   }
 
   const title = `${productName} Supplier in India | Price, Specification & Dealer | Raj Biosis`;
-
   const url = `https://rajbiosis.co.in/products/${slug}`;
 
   return {
