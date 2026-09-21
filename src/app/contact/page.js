@@ -288,8 +288,8 @@ export default function ContactPage({ city = "" }) {
         }
         subtitle={
           displayCity
-            ? `Get in touch with Raj Biosis in ${displayCity} for premium diagnostic and biomedical solutions.`
-            : "Get in touch with Raj Biosis for premium diagnostic and biomedical solutions."
+            ? `Contact Raj Biosis in ${displayCity} about product availability, specifications or a mixed biomedical requirement.`
+            : "Contact Raj Biosis about product availability, specifications or a mixed biomedical requirement."
         }
       />
 

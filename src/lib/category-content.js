@@ -67,13 +67,13 @@ export function getCategoryDetails(slug) {
 
   return {
     name: formattedName,
-    description: `Professional and certified ${formattedName} solutions designed to optimize medical testing, diagnostics efficiency, and healthcare performance.`,
+    description: `Catalogue information for ${formattedName}, presented to help professional buyers review the category and identify suitable product options.`,
     uses: `Used in clinical routines for diagnosing patient health profiles and analyzing medical samples.`,
     whoUses: `Hospitals, private pathology clinics, medical practitioners, and laboratory technicians.`,
-    specifications: `Manufactured according to strict quality guidelines; features robust specifications tailored to professional healthcare requirements.`,
-    applications: `Clinical diagnostics testing, laboratory research, and healthcare monitoring.`,
-    considerations: `Evaluate throughput capacity, compatibility with standard reagents, validation certificates, and post-sales technical support.`,
-    support: `Comprehensive warranty support, technician guidance, certified installation, and maintenance support options.`,
+    specifications: `Review the model-specific specifications, operating details and compatibility information provided for each listing.`,
+    applications: `Use may vary by model and can include laboratory work, diagnostic workflows, clinical settings, research or supporting healthcare operations.`,
+    considerations: `Consider application, capacity, sample or material requirements, compatibility, workflow fit and the practical support needed for the selected model.`,
+    support: `Enquiry assistance can cover product selection, configuration questions, availability and other purchase-related details.`,
     related: ["biochemistry-analyzer", "hematology-analyzers", "electrolyte-analyzer"]
   };
 }

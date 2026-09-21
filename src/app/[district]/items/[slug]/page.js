@@ -1,6 +1,9 @@
 import ProductDetails from "../../../items/[slug]/ProductDetails";
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }) {
   const { slug, district } = await params;
   

@@ -1,17 +1,18 @@
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 import ProductsClient from "./ProductsClient";
 
-export const revalidate = 3600; // Revalidate cache every hour
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
-  title: "Premium Biomedical & Laboratory Equipment Catalog | Raj Biosis",
-  description: "Browse our comprehensive collection of biochemistry analyzers, cell counters, rapid test kits, and diagnostic instruments. Trusted suppliers of laboratory equipment.",
+  title: "Biomedical Product Catalogue | Raj Biosis",
+  description: "Browse instruments, test kits, reagents, consumables, monitoring devices and other biomedical product groups in one catalogue.",
   alternates: {
     canonical: "https://rajbiosis.co.in/products", // Canonical points to /products
   },
   openGraph: {
-    title: "Premium Biomedical & Laboratory Equipment Catalog | Raj Biosis",
-    description: "Browse our comprehensive collection of biochemistry analyzers, cell counters, rapid test kits, and diagnostic instruments.",
+    title: "Biomedical Product Catalogue | Raj Biosis",
+    description: "Explore a broad selection of biomedical products arranged for easier professional sourcing.",
     url: "https://rajbiosis.co.in/products",
     type: "website",
   },

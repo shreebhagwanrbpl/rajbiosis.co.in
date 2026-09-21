@@ -1,87 +1,9 @@
-"use client";
-
-import { motion } from "framer-motion";
 import SectionTitle from "./SectionTitle";
-
-export default function Testimonials() {
-  const reviews = [
-    {
-      name: "Dr. Rajesh Kumar",
-      role: "Healthcare Specialist",
-      review:
-        "Raj Biosis has consistently delivered reliable diagnostic equipment with outstanding support.",
-    },
-    {
-      name: "Amit Sharma",
-      role: "Lab Director",
-      review:
-        "Professional service, premium products, and excellent biomedical consultation experience.",
-    },
-    {
-      name: "Neha Verma",
-      role: "Research Head",
-      review:
-        "Their healthcare solutions improved our laboratory efficiency significantly.",
-    },
-  ];
-
-  return (
-    <section className="section-padding bg-white">
-      <div className="container-custom">
-
-        <SectionTitle
-          badge="Testimonials"
-          title="What Our Clients Say"
-          description="Trusted by healthcare professionals, laboratories, and biomedical institutions."
-          center
-        />
-
-        <div className="grid lg:grid-cols-3 gap-8 mt-16">
-
-          {reviews.map((item, index) => (
-            <motion.div
-              key={index}
-              initial={{
-                opacity: 0,
-                y: 40,
-              }}
-              whileInView={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.15,
-              }}
-              viewport={{
-                once: true,
-              }}
-              className="bg-slate-50 rounded-[32px] p-8 border border-slate-100 card-shadow"
-            >
-              {/* Stars */}
-              <div className="flex gap-1 text-yellow-400 text-xl mb-5">
-                ★★★★★
-              </div>
-
-              {/* Review */}
-              <p className="text-slate-600 leading-8 italic">
-                "{item.review}"
-              </p>
-
-              {/* User */}
-              <div className="mt-8">
-                <h4 className="font-semibold text-lg">
-                  {item.name}
-                </h4>
-
-                <p className="text-slate-500">
-                  {item.role}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+export default function Testimonials(){
+ const cards=[
+  ["Routine laboratory purchase","A lab team needs several consumables and instruments together, so the catalogue helps them prepare one consolidated enquiry."],
+  ["New facility setup","A growing centre can review different product groups without being restricted to a single diagnostic category."],
+  ["Replacement requirement","When an existing item needs replacement, buyers can start with the product family and then compare available details."],
+ ];
+ return <section className="section-padding bg-slate-50"><div className="container-custom"><SectionTitle badge="Typical Use Cases" title="Different buyers, different baskets" description="The catalogue is intended for real-world biomedical purchasing situations rather than one narrow product line." center/><div className="mt-14 grid gap-6 lg:grid-cols-3">{cards.map(([t,d])=><article key={t} className="rounded-[30px] bg-white p-8 border border-slate-200"><div className="text-4xl font-black text-red-100">01</div><h3 className="mt-5 text-2xl font-bold">{t}</h3><p className="mt-4 leading-8 text-slate-600">{d}</p></article>)}</div></div></section>;
 }

@@ -290,10 +290,7 @@ export default function Footer() {
 
             <p className="mt-5 text-slate-600 leading-7">
 
-              Delivering trusted diagnostic
-              and biomedical solutions with
-              innovation, quality, and
-              precision healthcare support.
+              A broad biomedical catalogue for equipment, diagnostics, laboratory supplies, consumables and related purchasing needs.
 
             </p>
 
@@ -482,10 +479,10 @@ export default function Footer() {
 
               {categories.length === 0 && (
                 <>
-                  <p>Diagnostic Equipment</p>
-                  <p>Laboratory Solutions</p>
-                  <p>Biomedical Instruments</p>
-                  <p>Maintenance Support</p>
+                  <p>Diagnostic Products</p>
+                  <p>Laboratory Equipment</p>
+                  <p>Reagents & Consumables</p>
+                  <p>Product Enquiries</p>
                 </>
               )}
 
@@ -638,8 +635,7 @@ export default function Footer() {
           </p>
 
           <p className="mt-3 md:mt-0">
-            Designed with precision for
-            modern diagnostics.
+            A practical catalogue for varied biomedical requirements.
           </p>
 
         </div>

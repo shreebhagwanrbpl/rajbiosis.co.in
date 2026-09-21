@@ -1,5 +1,8 @@
 import ProductsPage from "@/app/items/page";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }) {
   const { district = "jaipur" } = await params;
   
@@ -8,7 +11,7 @@ export async function generateMetadata({ params }) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
   const title = `Biomedical Equipment & Laboratory Analyzers in ${districtName} | Raj Biosis`;
-  const description = `Discover advanced biochemistry analyzers, hematology cell counters, and rapid diagnostic test kits in ${districtName}. Premium laboratory supplier with local delivery.`;
+  const description = `Browse multiple biomedical product groups in ${districtName}, including equipment, testing products, supplies and related items.`;
 
   return {
     title,

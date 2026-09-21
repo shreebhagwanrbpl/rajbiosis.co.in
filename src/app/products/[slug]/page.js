@@ -1,6 +1,9 @@
 import ProductDetails from "../../items/[slug]/ProductDetails";
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
 
@@ -9,7 +12,7 @@ export async function generateMetadata({ params }) {
     ?.replace(/\b\w/g, (c) => c.toUpperCase());
   
   let categoryName = "Biomedical Equipment";
-  let description = `Buy ${productName} at the best price in India. Trusted supplier, dealer, and distributor of laboratory, pathology, and hospital equipment. Contact Raj Biosis for quotes.`;
+  let description = `Explore ${productName} specifications, applications and enquiry information in the Raj Biosis catalogue.`;
   let imageUrl = "/logo.png";
 
   try {

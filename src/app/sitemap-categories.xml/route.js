@@ -1,21 +1,19 @@
-import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { fetchCategoriesTree } from "@/lib/data-fetcher-server";
 
-export const revalidate = 86400; // Cache for 24 hours
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   const baseUrl = "https://rajbiosis.co.in";
   let xml = "";
 
   try {
-    const categorySnap = await getDocs(
-      collection(db, "websites", "rajbiosiscoin", "pages", "categoryproducts", "categories")
-    );
-
-    const categories = categorySnap.docs.map(doc => doc.id);
+    const categories = await fetchCategoriesTree();
 
     const urls = [];
-    categories.forEach(slug => {
+    categories.forEach(cat => {
+      const slug = cat.slug || cat.id;
+      if (!slug) return;
       // Create canonical urls for categories
       urls.push(`${baseUrl}/category/${slug}`);
       urls.push(`${baseUrl}/laboratory-equipment/${slug}`);
@@ -45,7 +43,7 @@ ${urlNodes}
   return new Response(xml, {
     headers: {
       "Content-Type": "application/xml",
-      "Cache-Control": "public, max-age=3600, s-maxage=3600",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     },
   });
 }

@@ -147,6 +147,7 @@ const CategoryItem = memo(function CategoryItem({
 });
 
 export default function ProductsClient({ initialProducts = [], district = null, city = null }) {
+  const [products, setProducts] = useState(initialProducts);
   const [categorySearch, setCategorySearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -155,6 +156,53 @@ export default function ProductsClient({ initialProducts = [], district = null, 
   const [openedSubCategories, setOpenedSubCategories] = useState({});
   const [pendingScroll, setPendingScroll] = useState(null);
   const [showTopButton, setShowTopButton] = useState(false);
+
+  // Sync state if initialProducts changes (e.g. on navigation)
+  useEffect(() => {
+    if (Array.isArray(initialProducts)) {
+      setProducts(initialProducts);
+    }
+  }, [initialProducts]);
+
+  // Real-time Master Catalog Live Sync (3-second polling + window focus)
+  const syncLiveCatalog = useCallback(async () => {
+    try {
+      const res = await fetch("/api/catalog?t=" + Date.now(), {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.products)) {
+          setProducts(data.products);
+        }
+      }
+    } catch (err) {
+      // Quiet fail on network blip
+    }
+  }, []);
+
+  useEffect(() => {
+    // 1. Initial live sync
+    syncLiveCatalog();
+
+    // 2. 3-second background live sync
+    const interval = setInterval(syncLiveCatalog, 3000);
+
+    // 3. Window focus and online listeners
+    const handleSync = () => syncLiveCatalog();
+    window.addEventListener("focus", handleSync);
+    window.addEventListener("online", handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleSync);
+      window.removeEventListener("online", handleSync);
+    };
+  }, [syncLiveCatalog]);
 
   // Debounce search term updates to make search typing instant
   useEffect(() => {
@@ -168,9 +216,10 @@ export default function ProductsClient({ initialProducts = [], district = null, 
   const { filteredProducts, sortedGroupedProducts, categoryCounts } = useMemo(() => {
     const start = performance.now();
     const query = productSearch.trim().toLowerCase();
+    const currentList = Array.isArray(products) ? products : [];
     const filtered = query
-      ? initialProducts.filter((item) => {
-        const title = (item.title || "").toLowerCase();
+      ? currentList.filter((item) => {
+        const title = (item.title || item.name || "").toLowerCase();
         const brand = (item.brand || "").toLowerCase();
         const model = (item.model || "").toLowerCase();
         const category = (item.category || "").toLowerCase();
@@ -184,14 +233,22 @@ export default function ProductsClient({ initialProducts = [], district = null, 
           subCategory.includes(query)
         );
       })
-      : initialProducts;
+      : currentList;
 
     const grouped = {};
     const counts = {};
 
     filtered.forEach((item) => {
-      const cat = item.category || "Other Products";
-      const sub = item.subCategory || cat;
+      let rawCat = (item.category || "Other Products").trim();
+      // Auto-normalize kebab-case or all-lowercase category slugs into proper Title Case
+      let cat = rawCat.includes("-") && rawCat === rawCat.toLowerCase()
+        ? rawCat.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : rawCat;
+
+      let rawSub = (item.subCategory || cat).trim();
+      let sub = rawSub.includes("-") && rawSub === rawSub.toLowerCase()
+        ? rawSub.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+        : rawSub;
 
       if (!grouped[cat]) {
         grouped[cat] = {};
@@ -231,7 +288,7 @@ export default function ProductsClient({ initialProducts = [], district = null, 
       sortedGroupedProducts: sortedObj,
       categoryCounts: counts,
     };
-  }, [initialProducts, productSearch]);
+  }, [products, productSearch]);
 
   const getCategoryProductCount = useCallback((categoryName) => {
     return categoryCounts[categoryName] || 0;
@@ -255,7 +312,7 @@ export default function ProductsClient({ initialProducts = [], district = null, 
     setPendingScroll(slug);
 
     // Auto-expand the target subcategory when scrolling to its product
-    const prod = initialProducts.find((p) => p.slug === slug);
+    const prod = (products || []).find((p) => p.slug === slug);
     if (prod && prod.subCategory) {
       const subKey = `${category}-${prod.subCategory}`;
       setOpenedSubCategories((prev) => ({
@@ -263,7 +320,7 @@ export default function ProductsClient({ initialProducts = [], district = null, 
         [subKey]: true,
       }));
     }
-  }, [initialProducts]);
+  }, [products]);
 
   // Scroll to selected sidebar item when category expansion finishes
   useEffect(() => {
@@ -320,7 +377,7 @@ export default function ProductsClient({ initialProducts = [], district = null, 
       {/* Banner */}
       {/* <PageBanner
         title={city ? `Our Products in ${city}` : "Our Products"}
-        subtitle="Explore advanced biomedical and diagnostic equipment designed for modern healthcare excellence."
+        subtitle="Browse a broad biomedical catalogue organised for practical product discovery."
       /> */}
       <script
         type="application/ld+json"
@@ -358,8 +415,8 @@ export default function ProductsClient({ initialProducts = [], district = null, 
         <div className="container-custom">
           <SectionTitle
             badge="Featured Products"
-            title="Premium Biomedical Equipment"
-            description="Discover high-quality diagnostic and biomedical technologies tailored for laboratories, healthcare institutions, and modern diagnostics."
+            title="Biomedical Product Catalogue"
+            description="Explore equipment, kits, reagents, consumables and supporting products for varied professional requirements."
             center
           />
         </div>
@@ -532,8 +589,8 @@ export default function ProductsClient({ initialProducts = [], district = null, 
         <div className="container-custom">
           <SectionTitle
             badge="Why Our Products"
-            title="Trusted Quality & Innovation"
-            description="We provide biomedical products designed for performance, reliability, and healthcare excellence."
+            title="Catalogue Selection Notes"
+            description="Review product information and specifications to match the item with the intended requirement."
             center
           />
 
@@ -549,11 +606,11 @@ export default function ProductsClient({ initialProducts = [], district = null, 
               },
               {
                 icon: <BadgeCheck size={30} />,
-                title: "Trusted Support",
+                title: "Enquiry Assistance",
               },
               {
                 icon: <PackageCheck size={30} />,
-                title: "Premium Equipment",
+                title: "Product Range",
               },
             ].map((item, index) => (
               <div

@@ -4,7 +4,8 @@ import ProductCard from "@/components/ProductCard";
 import SectionTitle from "@/components/SectionTitle";
 import PageBanner from "@/components/PageBanner";
 
-export const revalidate = 3600; // Cache for 1 hour
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }) {
     .replace(/\b\w/g, char => char.toUpperCase());
 
   const title = `Authorized ${brandName} Laboratory Equipment Dealer | Raj Biosis`;
-  const description = `Find premium diagnostic analyzers, reagents, and clinical equipment from ${brandName}. Trusted supplier and technical services in India.`;
+  const description = `Explore products listed under ${brandName}, including equipment, diagnostic items and related supplies.`;
 
   return {
     title,
@@ -53,7 +54,7 @@ export default async function BrandPage({ params }) {
     <>
       <PageBanner
         title={`${brandName} Equipment`}
-        subtitle={`Discover world-class clinical diagnostic systems manufactured by ${brandName}.`}
+        subtitle={`Browse catalogue entries associated with ${brandName} and review the information available for each product.`}
       />
 
       <section className="py-20 bg-slate-50">
@@ -65,14 +66,14 @@ export default async function BrandPage({ params }) {
             <div>
               <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-200 shadow-sm mb-12">
                 <h1 className="text-3xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
-                  About {brandName} Diagnostic Technologies
+                  About {brandName} Products
                 </h1>
                 <p className="text-slate-600 text-lg leading-8 mb-6">
-                  {brandName} is a global pioneer in clinical diagnostics, medical laboratory equipment, and biochemistry reagents. 
+                  {brandName} is a manufacturer or product brand represented in this catalogue. 
                   Renowned for superior engineering, automated calibration, and testing reliability, {brandName} analyzers are the standard in hospital laboratories and reference hubs.
                 </p>
                 <p className="text-slate-600 leading-8">
-                  At Raj Biosis, we supply certified {brandName} equipment and support clinical users with calibration, setup guidance, 
+                  Raj Biosis lists relevant {brandName} products and provides enquiry-oriented information for buyers. 
                   and ongoing preventative maintenance packages. Explore our matching inventory below and request custom quotes.
                 </p>
               </div>
@@ -82,7 +83,7 @@ export default async function BrandPage({ params }) {
                 <SectionTitle
                   badge="Brand Catalog"
                   title={`Featured ${brandName} Analyzers & Systems`}
-                  description={`Browse through our selection of high-performance ${brandName} diagnostics systems.`}
+                  description={`View the available ${brandName} catalogue entries.`}
                 />
 
                 {matchingProducts.length > 0 ? (

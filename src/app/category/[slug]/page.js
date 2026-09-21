@@ -5,13 +5,14 @@ import ProductCard from "@/components/ProductCard";
 import SectionTitle from "@/components/SectionTitle";
 import PageBanner from "@/components/PageBanner";
 
-export const revalidate = 3600; // Cache for 1 hour
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const details = getCategoryDetails(slug);
-  const title = `Premium ${details.name} Supplier | Price & Specifications | Raj Biosis`;
-  const description = `${details.name} solutions. ${details.description.substring(0, 120)}... Trusted supplier of laboratory diagnostics equipment.`;
+  const title = `${details.name} Catalogue | Specifications & Enquiry | Raj Biosis`;
+  const description = `Explore ${details.name} products, specifications and related catalogue information for professional requirements.`;
 
   return {
     title,
@@ -38,18 +39,19 @@ export default async function CategoryPage({ params }) {
   
   const allProducts = await fetchFullCatalog();
   
-  // Filter products by category matching the current category slug
+  // Filter products by category matching the current category slug or categoryId
   const matchingProducts = allProducts.filter(product => {
-    if (!product || !product.category) return false;
-    const catSlug = product.category.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
-    return catSlug === slug;
+    if (!product) return false;
+    const catSlug = (product.category || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
+    const catId = (product.categoryId || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
+    return catSlug === slug || catId === slug;
   });
 
   return (
     <>
       <PageBanner
         title={details.name}
-        subtitle={`High-precision laboratory solutions and professional technical support.`}
+        subtitle={`Product information, practical details and enquiry guidance for this category.`}
       />
 
       <section className="py-20 bg-slate-50">
@@ -104,7 +106,7 @@ export default async function CategoryPage({ params }) {
                 </p>
 
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Certified Service & Setup Support
+                  Product & Enquiry Guidance
                 </h2>
                 <p className="text-slate-600 leading-7">
                   {details.support}
@@ -117,7 +119,7 @@ export default async function CategoryPage({ params }) {
                 <SectionTitle
                   badge="Available Products"
                   title={`Select ${details.name} Systems`}
-                  description={`Browse through our premium, certified models available for delivery.`}
+                  description={`Review the available models and product information in this category.`}
                 />
 
                 {matchingProducts.length > 0 ? (
@@ -184,7 +186,7 @@ export default async function CategoryPage({ params }) {
                   Need Assistance?
                 </h3>
                 <p className="text-red-700 text-sm leading-6 mb-6">
-                  Our biomedical product specialists are ready to help you select the ideal diagnostics setup.
+                  If the right choice depends on your application or specifications, share the requirement for guidance.
                 </p>
                 <Link href="/contact" className="inline-block w-full bg-[#E52428] hover:bg-[#C91D21] text-white font-bold py-3.5 rounded-xl transition shadow-md">
                   Speak to Engineer

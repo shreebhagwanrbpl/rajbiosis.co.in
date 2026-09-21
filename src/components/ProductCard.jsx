@@ -138,7 +138,7 @@ const ProductCard = React.memo(function ProductCard({
                     >
                         {product.description ||
                             product.desc ||
-                            "Premium biomedical equipment designed for laboratories, hospitals and diagnostic centres."}
+                            "Biomedical product information for laboratories, hospitals, clinics and institutional buyers."}
                     </p>
 
                     {/* ================= PRODUCT INFO ================= */}

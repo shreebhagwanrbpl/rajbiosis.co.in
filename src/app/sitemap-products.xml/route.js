@@ -1,6 +1,7 @@
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 
-export const revalidate = 86400; // Cache for 24 hours
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   const baseUrl = "https://rajbiosis.co.in";

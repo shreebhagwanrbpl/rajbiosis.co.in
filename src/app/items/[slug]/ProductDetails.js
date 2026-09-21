@@ -74,10 +74,31 @@ export default function ProductDetails({ slug }) {
     useEffect(() => {
         const loadProduct = async () => {
             try {
-                const allProducts = await fetchFullCatalog();
-                const found = allProducts.find(
-                    (p) => p.slug === slug
-                );
+                let found = null;
+                try {
+                    const res = await fetch("/api/catalog?t=" + Date.now(), {
+                        cache: "no-store",
+                        headers: { "Cache-Control": "no-cache" },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.success && Array.isArray(data.products)) {
+                            found = data.products.find(
+                                (p) => p.slug === slug || p.id === slug || p.productId === slug
+                            );
+                        }
+                    }
+                } catch (apiErr) {
+                    // Fallback to data fetcher
+                }
+
+                if (!found) {
+                    const allProducts = await fetchFullCatalog();
+                    found = allProducts.find(
+                        (p) => p.slug === slug || p.id === slug || p.productId === slug
+                    );
+                }
+
                 setProduct(found || null);
 
                 if (found) {
@@ -1214,174 +1235,29 @@ ${product?.desc}
 
 
 
-                            {/* SEO Content */}
+                            {/* Product-specific catalogue guidance */}
                             <div className="mt-12">
-
-
-                                <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                    Why Choose Raj Biosis in {cityName}?
-                                </h3>
-
-
+                                <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">About {product.title}</h3>
                                 <p className="text-[#475569] leading-8">
-
-                                    Raj Biosis is a trusted supplier and
-                                    distributor of {product.title} in {cityName}.
-                                    We provide high-quality biomedical and laboratory
-                                    equipment for hospitals, pathology laboratories,
-                                    diagnostic centres and healthcare facilities.
-
+                                    This catalogue entry brings together the available information for {product.title}, including its product details, specifications and intended use. Buyers can use the page as a starting point when comparing requirements across the wider Raj Biosis range.
                                 </p>
-
-
-
-
                                 <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        Features of {product.title}
-                                    </h3>
-
-
+                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">Where it fits</h3>
                                     <p className="text-[#475569] leading-8">
-
-                                        {product.title} offers reliable performance,
-                                        accurate results, easy operation, long service
-                                        life and efficient workflow for laboratories
-                                        and hospitals.
-
+                                        Depending on the model and configuration, {product.title} may form part of a laboratory, clinical, diagnostic, research or patient-care workflow. Refer to the listed specifications and application information for the particular product.
                                     </p>
-
-
                                 </div>
-
-
-
-
                                 <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        Applications of {product.title}
-                                    </h3>
-
+                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">Requirement check</h3>
                                     <p className="text-[#475569] leading-8">
-                                        Widely used in hospitals, pathology labs,
-                                        diagnostic centres, blood banks, research
-                                        institutes and healthcare facilities.
+                                        Before enquiring, consider the intended application, capacity, format, compatibility, operating requirements and any accessories needed with {product.title}. If some details are still undecided, the requirement can be discussed directly.
                                     </p>
-
-
                                 </div>
-
-
-
-
                                 <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        {product.title} Supplier in {cityName}
-                                    </h3>
-
-
+                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">Availability and enquiry</h3>
                                     <p className="text-[#475569] leading-8">
-                                        Raj Biosis supplies {product.title}
-                                        in {cityName} with technical support,
-                                        installation assistance and customer service
-                                        for hospitals and laboratories.
+                                        Availability, configuration and commercial terms can vary by product and requirement. Use the enquiry option on this page for current information rather than relying on a generic catalogue statement.
                                     </p>
-
-
-                                </div>
-
-
-
-
-                                <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        {product.title} Dealer in {cityName}
-                                    </h3>
-
-
-                                    <p className="text-[#475569] leading-8">
-                                        Raj Biosis is a trusted dealer of
-                                        {product.title} in {cityName}. We supply
-                                        biomedical equipment, laboratory instruments,
-                                        diagnostic analyzers and healthcare devices
-                                        to hospitals, pathology labs and research centres.
-                                    </p>
-
-
-                                </div>
-
-
-
-
-
-                                <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        {product.title} Distributor in {cityName}
-                                    </h3>
-
-
-                                    <p className="text-[#475569] leading-8">
-                                        Looking for a reliable distributor of
-                                        {product.title} in {cityName}? We provide
-                                        installation support, product guidance,
-                                        maintenance assistance and fast delivery.
-                                    </p>
-
-
-                                </div>
-
-
-
-
-
-                                <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        Buy {product.title} in {cityName}
-                                    </h3>
-
-
-                                    <p className="text-[#475569] leading-8">
-                                        Buy high quality {product.title} in
-                                        {cityName} at competitive prices.
-                                        Contact Raj Biosis for the
-                                        latest quotation and product availability.
-                                    </p>
-
-
-                                </div>
-
-
-
-
-
-                                <div className="mt-8">
-
-
-                                    <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">
-                                        {product.title} Price in {cityName}
-                                    </h3>
-
-
-                                    <p className="text-[#475569] leading-8">
-                                        The price of {product.title} depends on
-                                        brand, model, specifications and features.
-                                        Contact our team for the latest pricing,
-                                        availability and delivery details.
-                                    </p>
-
-
                                 </div>
                             </div>
 
@@ -1579,7 +1455,7 @@ ${product?.desc}
                                 Raj Biosis
                             </h1>
                             <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#475569", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>
-                                Trusted Biomedical Systems
+                                Biomedical Product Catalogue
                             </p>
                         </div>
                     </div>
@@ -1684,7 +1560,7 @@ ${product?.desc}
                         Product Overview
                     </h3>
                     <p style={{ fontSize: "14px", lineHeight: "1.6", color: "#475569", margin: "0", textAlign: "justify" }}>
-                        {product.description || product.desc || "Premium biomedical equipment designed for laboratories, hospitals, and diagnostic centers."}
+                        {product.description || product.desc || "Product information supplied for professional biomedical requirements."}
                     </p>
                 </div>
 
@@ -1699,7 +1575,7 @@ ${product?.desc}
                     lineHeight: "1.5"
                 }}>
                     <p style={{ margin: "0", fontWeight: "600" }}>Office Address: {contactData.address}</p>
-                    <p style={{ margin: "5px 0 0 0" }}>© 2026 Raj Biosis. All rights reserved. Premium diagnostics and biomedical solutions.</p>
+                    <p style={{ margin: "5px 0 0 0" }}>© 2026 Raj Biosis. All rights reserved. Biomedical products, equipment and related supplies.</p>
                 </div>
             </div>
 
