@@ -1,26 +1,15 @@
 "use client";
-
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  doc,
-  getDoc,
-  addDoc,
-  collection,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import toast from "react-hot-toast";
-
 import {
   Mail,
   Phone,
   MapPin,
   Clock3,
 } from "lucide-react";
-
 import PageBanner from "@/components/PageBanner";
 import CTASection from "@/components/CTASection";
-
 export default function ContactPage({ city = "" }) {
   const [loading, setLoading] = useState(true);
   const [districtData, setDistrictData] = useState(null);
@@ -98,18 +87,15 @@ export default function ContactPage({ city = "" }) {
     try {
       setSubmitting(true);
 
-      await addDoc(
-        collection(
-          db,
-          "websitesQueries",
-          "rajbiosiscoin",
-          "contactQueries"
-        ),
-        {
-          ...form,
-          createdAt: new Date(),
-        }
-      );
+      await fetch("/api/contact-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form }),
+      }).then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.success === false) throw new Error(result.error || "Submission failed");
+        return result;
+      });
 
       toast.success(
         "Message submitted successfully"
@@ -140,15 +126,11 @@ export default function ContactPage({ city = "" }) {
       if (!currentDistrict) return;
 
       try {
-        const snap = await getDoc(
-          doc(
-            db,
-            "websites",
-            "rajbiosiscoin",
-            "districts",
-            currentDistrict
-          )
-        );
+        const snap = await (async () => {
+          const response = await fetch(`/api/site-data?pageType=district&district=${encodeURIComponent(currentDistrict)}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
+          const json = await response.json().catch(() => ({}));
+          return { exists: () => !!json.data, data: () => json.data || {} };
+        })();
 
         if (snap.exists()) {
           setDistrictData(snap.data());
@@ -166,15 +148,11 @@ export default function ContactPage({ city = "" }) {
   useEffect(() => {
     const loadContact = async () => {
       try {
-        const snap = await getDoc(
-          doc(
-            db,
-            "websites",
-            "rajbiosiscoin",
-            "pages",
-            "contact"
-          )
-        );
+        const snap = await (async () => {
+          const response = await fetch("/api/site-data?pageType=contact", { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
+          const json = await response.json().catch(() => ({}));
+          return { exists: () => !!json.data, data: () => json.data || {} };
+        })();
 
         if (snap.exists()) {
           setContactInfo(
@@ -196,8 +174,7 @@ export default function ContactPage({ city = "" }) {
   const phone =
     contactInfo.find(
       (x) => x.label === "Phone" || x.label === "Phone Number"
-    )?.value ||
-    "+91 9983123469\n+91 9983333489";
+    )?.value || "";
 
   const email =
     contactInfo.find(
@@ -225,7 +202,7 @@ export default function ContactPage({ city = "" }) {
   const phoneStr = phone ? String(phone) : "";
   const phoneNumbers = phoneStr
     ? phoneStr
-      .split(/[\n,]+/)
+      .split(/[\n,;/|]+/)
       .map((num) => num.trim())
       .filter(Boolean)
     : [];

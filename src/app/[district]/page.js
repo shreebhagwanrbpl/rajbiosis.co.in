@@ -1,7 +1,6 @@
 import Home from "@/app/page";
 import { fetchDistrictData } from "@/lib/data-fetcher";
 import { notFound } from "next/navigation";
-
 export default async function DistrictPage({ params }) {
   const { district } = await params;
 

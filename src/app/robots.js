@@ -13,4 +13,4 @@ export default function robots() {
     },
     sitemap: "https://rajbiosis.co.in/sitemap.xml",
   };
-}
+}

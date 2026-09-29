@@ -1,8 +1,8 @@
+import CatalogRealtimeSync from "@/components/CatalogRealtimeSync";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
-
 export const metadata = {
   metadataBase: new URL(
     "https://rajbiosis.co.in"
@@ -85,6 +85,7 @@ export default function RootLayout({
         </main>
 
         <Footer />
+      <CatalogRealtimeSync />
       </body>
     </html>
   );

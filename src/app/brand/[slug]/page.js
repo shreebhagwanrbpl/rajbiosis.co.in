@@ -3,7 +3,6 @@ import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 import ProductCard from "@/components/ProductCard";
 import SectionTitle from "@/components/SectionTitle";
 import PageBanner from "@/components/PageBanner";
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 

@@ -2,6 +2,66 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import SectionTitle from "./SectionTitle";
-import { useEffect,useState } from "react";
-import { fetchFullCatalog } from "@/lib/data-fetcher";
-export default function HomeProducts({city,district}){const [products,setProducts]=useState([]);useEffect(()=>{fetchFullCatalog().then(x=>setProducts(Array.isArray(x)?x.slice(0,6):[])).catch(()=>{});},[]);const base=district?`/${district}`:"";return <section className="section-padding bg-slate-50"><div className="container-custom"><SectionTitle badge="Featured Catalogue" title={city?`Product selection for ${city}`:"Explore biomedical product groups"} description="A few catalogue entries are shown here; open the full listing to browse the wider range." center/><div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">{products.map((p,i)=><Link key={p.slug||i} href={`${base}/items/${p.slug||""}`} className="rounded-[28px] border border-slate-200 bg-white p-6 hover:-translate-y-1 transition"><p className="text-xs font-bold uppercase tracking-wider text-[#E52428]">{p.category||"Biomedical product"}</p><h3 className="mt-3 text-xl font-bold text-slate-900">{p.title||p.name}</h3><p className="mt-3 line-clamp-3 text-slate-600 leading-7">{p.description||p.desc||"Review specifications, application details and enquiry options."}</p><span className="mt-5 inline-flex items-center gap-2 font-semibold">View details <ArrowRight size={17}/></span></Link>)}</div><div className="mt-10 text-center"><Link href={`${base}/items`} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-7 py-4 font-bold text-white">Open full catalogue <ArrowRight size={18}/></Link></div></div></section>}
+import { useEffect, useState } from "react";
+
+export default function HomeProducts({ city, district }) {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/products", {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && Array.isArray(data.products)) {
+          setProducts(data.products.slice(0, 6));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const base = district ? `/${district}` : "";
+
+  return (
+    <section className="section-padding bg-slate-50">
+      <div className="container-custom">
+        <SectionTitle
+          badge="Featured Catalogue"
+          title={city ? `Product selection for ${city}` : "Explore biomedical product groups"}
+          description="A few catalogue entries are shown here; open the full listing to browse the wider range."
+          center
+        />
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((p, i) => (
+            <Link
+              key={p.slug || i}
+              href={`${base}/items/${p.slug || ""}`}
+              className="rounded-[28px] border border-slate-200 bg-white p-6 hover:-translate-y-1 transition"
+            >
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E52428]">
+                {p.category || "Biomedical product"}
+              </p>
+              <h3 className="mt-3 text-xl font-bold text-slate-900">{p.title || p.name}</h3>
+              <p className="mt-3 line-clamp-3 text-slate-600 leading-7">
+                {p.description || p.desc || "Review specifications, application details and enquiry options."}
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 font-semibold">
+                View details <ArrowRight size={17} />
+              </span>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <Link
+            href={`${base}/items`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-7 py-4 font-bold text-white"
+          >
+            Open full catalogue <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+

@@ -1,6 +1,5 @@
 import { fetchFullCatalog } from "@/lib/data-fetcher-server";
 import ProductsClient from "./ProductsClient";
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 

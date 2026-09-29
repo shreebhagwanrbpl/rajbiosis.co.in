@@ -1,5 +1,4 @@
 import ServicesPage from "@/app/services/page";
-
 export async function generateMetadata({ params }) {
   const { district = "jaipur" } = await params;
   

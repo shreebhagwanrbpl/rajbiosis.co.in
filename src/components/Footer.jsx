@@ -1,24 +1,17 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getContactValue, parseContactValues, phoneHref, mailHref } from "@/lib/contact-utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import {
   Mail,
   Phone,
   MapPin,
 } from "lucide-react";
-
 import {
   FaFacebookF,
   FaInstagram,
 } from "react-icons/fa";
-
-import { fetchFullCatalog } from "@/lib/data-fetcher";
-
 /* =========================================================
    FOOTER
 ========================================================= */
@@ -59,15 +52,11 @@ export default function Footer() {
   useEffect(() => {
     const loadContact = async () => {
       try {
-        const snap = await getDoc(
-          doc(
-            db,
-            "websites",
-            "rajbiosiscoin",
-            "pages",
-            "contact"
-          )
-        );
+        const snap = await (async () => {
+          const response = await fetch("/api/site-data?pageType=contact", { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
+          const json = await response.json().catch(() => ({}));
+          return { exists: () => !!json.data, data: () => json.data || {} };
+        })();
 
         if (snap.exists()) {
           setContactInfo(
@@ -94,15 +83,11 @@ export default function Footer() {
       if (!district) return;
 
       try {
-        const snap = await getDoc(
-          doc(
-            db,
-            "websites",
-            "rajbiosiscoin",
-            "districts",
-            district
-          )
-        );
+        const snap = await (async () => {
+          const response = await fetch(`/api/site-data?pageType=district&district=${encodeURIComponent(district)}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
+          const json = await response.json().catch(() => ({}));
+          return { exists: () => !!json.data, data: () => json.data || {} };
+        })();
 
         if (snap.exists()) {
           setDistrictData(snap.data());
@@ -122,8 +107,12 @@ export default function Footer() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const catalog =
-          await fetchFullCatalog();
+        const response = await fetch("/api/catalog", {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const json = await response.json().catch(() => ({}));
+        const catalog = json.products || [];
 
         const uniqueCategories =
           Array.from(
@@ -155,8 +144,7 @@ export default function Footer() {
   const phone =
     contactInfo.find(
       (x) => x.label === "Phone" || x.label === "Phone Number"
-    )?.value ||
-    "+91 9983123469\n+91 9983333489";
+    )?.value || "";
 
   const email =
     contactInfo.find(
@@ -178,10 +166,12 @@ export default function Footer() {
   const phoneStr = phone ? String(phone) : "";
   const phoneNumbers = phoneStr
     ? phoneStr
-      .split(/[\n,]+/)
+      .split(/[\n,;/|]+/)
       .map((num) => num.trim())
       .filter(Boolean)
     : [];
+
+  const emailAddresses = parseContactValues(email);
 
   /* =========================================================
      ROUTING
@@ -587,19 +577,17 @@ export default function Footer() {
                   className="text-[#E52428]"
                 />
 
-                <p>
-
-                  <a
-                    href={`mailto:${email}`}
-                    className="
-                      hover:text-[#E52428]
-                      transition
-                    "
-                  >
-                    {email}
-                  </a>
-
-                </p>
+                <div className="flex flex-col gap-1">
+                  {emailAddresses.map((addressValue, index) => (
+                    <a
+                      key={index}
+                      href={mailHref(addressValue) || "#"}
+                      className="hover:text-[#E52428] transition"
+                    >
+                      {addressValue}
+                    </a>
+                  ))}
+                </div>
 
               </div>
 

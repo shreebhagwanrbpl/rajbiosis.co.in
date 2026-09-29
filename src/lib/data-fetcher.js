@@ -1,65 +1,20 @@
-import { db } from "./firebase.js";
-import { doc, getDoc, getDocs, collection } from "firebase/firestore";
 import {
-  getCompanyId,
-  getWebsiteId,
-  isItemVisibleForWebsite,
-  normalizeId,
-} from "./catalog-config.js";
+  COMPANY_ID,
+  WEBSITE_ID,
+  makeSlug,
+  isItemVisibleOnWebsite,
+} from "./catalog-utils";
+import {
+  readDocument,
+  readDocumentsWhereCollection,
+} from "./sqliteDb";
+export { makeSlug };
 
-// Simple in-memory cache for Firestore documents (short-lived or for static pages)
-const docCache = {};
-
-export const makeSlug = (text = "") =>
-  String(text || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
-
-/**
- * Fetch a single document and cache its promise/data.
- */
-export async function fetchDocCached(path) {
-  if (docCache[path]) {
-    return docCache[path];
-  }
-  if (!docCache[path + "_promise"]) {
-    docCache[path + "_promise"] = (async () => {
-      try {
-        const parts = path.split("/");
-        const docRef = doc(db, ...parts);
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          docCache[path] = data;
-          return data;
-        }
-        return null;
-      } catch (err) {
-        console.error(`Error fetching doc at ${path}:`, err);
-        delete docCache[path + "_promise"];
-        throw err;
-      }
-    })();
-  }
-  return docCache[path + "_promise"];
-}
-
-/**
- * Normalizes a product object from Firestore into standard format.
- */
-function normalizeProduct(p, catId, catName, subId, subName, fallbackIdx = 0, companyId = "rajbiosis") {
-  const title = p.title || p.name || "Untitled Product";
-  const slug = p.slug || makeSlug(title);
-  const images = Array.isArray(p.images) && p.images.length > 0
+function normalizeProduct(p = {}, catId = "", catName = "", subId = "", subName = "", fallbackIdx = 0) {
+  const title = p.title || p.name || "";
+  const images = Array.isArray(p.images) && p.images.length
     ? p.images
     : (p.image ? [p.image] : (p.originalImages || []));
-  const primaryImage = images[0] || p.image || "";
-
-  // Authoritative clean category and subcategory names from Master Catalog
-  const cleanCategory = catName || p.category || catId;
-  const cleanSubCategory = subName || p.subCategory || subId;
 
   return {
     ...p,
@@ -68,17 +23,17 @@ function normalizeProduct(p, catId, catName, subId, subName, fallbackIdx = 0, co
     uid: p.uid || p.id || p.productId || `${catId}-${subId}-${fallbackIdx}`,
     title,
     name: title,
-    slug,
-    price: p.price || "",
-    desc: p.desc || p.description || "",
-    description: p.description || p.desc || "",
-    category: cleanCategory,
-    categoryId: catId || p.categoryId,
-    subCategory: cleanSubCategory,
-    subcategoryId: subId || p.subcategoryId,
-    companyId: p.companyId || companyId,
+    slug: p.slug || makeSlug(title),
+    price: p.price ?? "",
+    desc: p.desc ?? p.description ?? "",
+    description: p.description ?? p.desc ?? "",
+    category: catName || p.category || catId,
+    categoryId: p.categoryId || catId || "",
+    subCategory: subName || p.subCategory || subId,
+    subcategoryId: p.subcategoryId || subId || "",
+    companyId: p.companyId || COMPANY_ID,
     images,
-    image: primaryImage,
+    image: images[0] || p.image || "",
     video: p.video || "",
     pdf: p.pdf || "",
     brand: p.brand || "",
@@ -92,234 +47,189 @@ function normalizeProduct(p, catId, catName, subId, subName, fallbackIdx = 0, co
     availability: p.availability || "",
     size: p.size || "",
     isPublished: p.isPublished !== false,
-    websiteIds: Array.isArray(p.websiteIds) ? p.websiteIds : [],
+    websiteIds: Array.isArray(p.websiteIds) ? p.websiteIds : p.websiteIds,
   };
 }
 
-/**
- * Fetches the entire Master Catalog from `companies/{companyId}/categories/{categoryId}/subcategories/{subcategoryId}`
- * with bulletproof hierarchical cascading visibility logic.
- *
- * Cascading Visibility:
- * 1. If Category is hidden -> Category and ALL its subcategories/products are excluded.
- * 2. If Subcategory is hidden -> Subcategory and ALL its products are excluded.
- * 3. If Product is hidden (isPublished === false or websiteIds not matching) -> Product is excluded.
- *
- * @param {Object} [options]
- * @param {string} [options.companyId] - Target company ID
- * @param {string} [options.websiteId] - Target website ID
- * @returns {Promise<Array>} List of visible products
- */
-export async function fetchFullCatalog({ companyId, websiteId } = {}) {
-  const targetCompany = companyId || getCompanyId();
-  const targetWebsite = websiteId || getWebsiteId();
-  const startTime = performance.now();
+function categoryPath(categoryId) {
+  return `companies/${COMPANY_ID}/categories/${categoryId}`;
+}
 
-  try {
-    const allProducts = [];
+function subcategoryPath(categoryId) {
+  return `${categoryPath(categoryId)}/subcategories`;
+}
 
-    // 1. Fetch categories from Master Catalog: companies/{companyId}/categories
-    const categorySnap = await getDocs(
-      collection(db, "companies", targetCompany, "categories")
-    );
+export async function fetchFullCatalog({ companyId = COMPANY_ID, websiteId = WEBSITE_ID } = {}) {
+  const allProducts = [];
+  const categories = readDocumentsWhereCollection(`companies/${companyId}/categories`);
 
-    // Filter visible categories
-    const visibleCategoryDocs = categorySnap.docs.filter((catDoc) => {
-      const catData = { id: catDoc.id, ...catDoc.data() };
-      return isItemVisibleForWebsite(catData, targetWebsite);
-    });
+  const visibleCategoryIds = new Set();
+  const visibleCategoryNames = new Set();
+  const visibleSubcategoryIds = new Set();
+  const visibleSubcategoryNames = new Set();
 
-    // 2. Fetch all subcategories concurrently with Promise.all
-    await Promise.all(
-      visibleCategoryDocs.map(async (categoryDoc) => {
-        const catData = categoryDoc.data();
-        const categoryId = categoryDoc.id;
-        const categoryName = catData.name || catData.category || categoryId;
+  for (const row of categories) {
+    const cat = { id: row.doc_id, ...row.data };
+    if (!isItemVisibleOnWebsite(cat, websiteId)) continue;
 
-        try {
-          const subcategoriesSnap = await getDocs(
-            collection(
-              db,
-              "companies",
-              targetCompany,
-              "categories",
-              categoryId,
-              "subcategories"
-            )
-          );
+    visibleCategoryIds.add(cat.id);
+    const categoryName = cat.name || cat.category || cat.id;
+    visibleCategoryNames.add(String(categoryName).toLowerCase().replace(/[^a-z0-9]/g, ""));
 
-          subcategoriesSnap.docs.forEach((subDoc) => {
-            const subData = { id: subDoc.id, ...subDoc.data() };
-
-            // Check subcategory visibility
-            if (!isItemVisibleForWebsite(subData, targetWebsite)) {
-              return; // Subcategory hidden -> skip all its products
-            }
-
-            const subcategoryId = subDoc.id;
-            const subCategoryName = subData.name || subData.subCategory || subcategoryId;
-            const rawProducts = Array.isArray(subData.products) ? subData.products : [];
-
-            // Filter and normalize visible products
-            rawProducts.forEach((prod, pIdx) => {
-              if (isItemVisibleForWebsite(prod, targetWebsite)) {
-                allProducts.push(
-                  normalizeProduct(
-                    prod,
-                    categoryId,
-                    categoryName,
-                    subcategoryId,
-                    subCategoryName,
-                    pIdx,
-                    targetCompany
-                  )
-                );
-              }
-            });
-          });
-        } catch (subErr) {
-          console.error(`Error fetching subcategories for category ${categoryId}:`, subErr);
-        }
-
-        // Check any direct products attached to category doc
-        if (Array.isArray(catData.products)) {
-          catData.products.forEach((prod, pIdx) => {
-            if (isItemVisibleForWebsite(prod, targetWebsite)) {
-              allProducts.push(
-                normalizeProduct(
-                  prod,
-                  categoryId,
-                  categoryName,
-                  categoryId,
-                  categoryName,
-                  `direct-${pIdx}`,
-                  targetCompany
-                )
-              );
-            }
-          });
-        }
-      })
-    );
-
-    // 3. Also check direct normal products collection at companies/{companyId}/products
-    try {
-      const directProdsSnap = await getDocs(
-        collection(db, "companies", targetCompany, "products")
-      );
-      directProdsSnap.docs.forEach((pDoc, pIdx) => {
-        const prodData = { id: pDoc.id, ...pDoc.data() };
-        if (isItemVisibleForWebsite(prodData, targetWebsite)) {
-          allProducts.push(
-            normalizeProduct(
-              prodData,
-              prodData.categoryId || "normal",
-              prodData.category || "General Products",
-              prodData.subcategoryId || "general",
-              prodData.subCategory || "General Products",
-              `norm-${pIdx}`,
-              targetCompany
-            )
-          );
+    // Products embedded in category document.
+    if (Array.isArray(cat.products)) {
+      cat.products.forEach((product, idx) => {
+        if (isItemVisibleOnWebsite(product, websiteId)) {
+          allProducts.push(normalizeProduct(
+            product, cat.id, categoryName, product.subcategoryId || "", product.subCategory || "", `cat-${idx}`
+          ));
         }
       });
-    } catch (dpErr) {
-      console.error("Error fetching direct company products:", dpErr);
     }
 
-    const duration = performance.now() - startTime;
-    console.log(
-      `[data-fetcher] Master Catalog fetch for company="${targetCompany}", website="${targetWebsite}" returned ${allProducts.length} visible products in ${duration.toFixed(2)}ms`
-    );
+    const subs = readDocumentsWhereCollection(subcategoryPath(cat.id));
+    for (const subRow of subs) {
+      const sub = { id: subRow.doc_id, ...subRow.data };
+      if (!isItemVisibleOnWebsite(sub, websiteId)) continue;
 
-    return allProducts;
-  } catch (err) {
-    console.error("Error fetching full catalog from Master Catalog:", err);
-    throw err;
-  }
-}
+      visibleSubcategoryIds.add(`${cat.id}/${sub.id}`);
+      const subName = sub.name || sub.subCategory || sub.id;
+      visibleSubcategoryNames.add(String(subName).toLowerCase().replace(/[^a-z0-9]/g, ""));
 
-/**
- * Fetches the structured Category & Subcategory tree from Master Catalog with visibility filtering.
- */
-export async function fetchCategoriesTree({ companyId, websiteId } = {}) {
-  const targetCompany = companyId || getCompanyId();
-  const targetWebsite = websiteId || getWebsiteId();
-
-  try {
-    const categorySnap = await getDocs(
-      collection(db, "companies", targetCompany, "categories")
-    );
-
-    const visibleCategories = [];
-
-    await Promise.all(
-      categorySnap.docs.map(async (catDoc) => {
-        const catData = { id: catDoc.id, ...catDoc.data() };
-        if (!isItemVisibleForWebsite(catData, targetWebsite)) {
-          return;
-        }
-
-        const categoryId = catDoc.id;
-        const subcategoriesSnap = await getDocs(
-          collection(
-            db,
-            "companies",
-            targetCompany,
-            "categories",
-            categoryId,
-            "subcategories"
-          )
-        );
-
-        const visibleSubcategories = [];
-        subcategoriesSnap.docs.forEach((subDoc) => {
-          const subData = { id: subDoc.id, ...subDoc.data() };
-          if (isItemVisibleForWebsite(subData, targetWebsite)) {
-            const rawProds = Array.isArray(subData.products) ? subData.products : [];
-            const visibleProds = rawProds.filter((p) => isItemVisibleForWebsite(p, targetWebsite));
-            visibleSubcategories.push({
-              ...subData,
-              productsCount: visibleProds.length,
-              products: visibleProds,
-            });
+      if (Array.isArray(sub.products)) {
+        sub.products.forEach((product, idx) => {
+          if (isItemVisibleOnWebsite(product, websiteId)) {
+            allProducts.push(normalizeProduct(
+              product, cat.id, categoryName, sub.id, subName, `embedded-${idx}`
+            ));
           }
         });
+      }
 
-        visibleCategories.push({
-          ...catData,
-          subcategories: visibleSubcategories,
-          totalProductsCount: visibleSubcategories.reduce(
-            (sum, s) => sum + (s.productsCount || 0),
-            0
-          ),
-        });
-      })
-    );
-
-    return visibleCategories;
-  } catch (err) {
-    console.error("Error fetching categories tree:", err);
-    return [];
+      const subProducts = readDocumentsWhereCollection(
+        `${categoryPath(cat.id)}/subcategories/${sub.id}/products`
+      );
+      subProducts.forEach((productRow, idx) => {
+        const product = { id: productRow.doc_id, ...productRow.data };
+        if (isItemVisibleOnWebsite(product, websiteId)) {
+          allProducts.push(normalizeProduct(
+            product, cat.id, categoryName, sub.id, subName, `sqlite-${idx}`
+          ));
+        }
+      });
+    }
   }
+
+  // Master / standalone products. Category and subcategory hierarchy is also verified.
+  const masterProducts = readDocumentsWhereCollection(`companies/${companyId}/products`);
+  masterProducts.forEach((row, idx) => {
+    const product = { id: row.doc_id, ...row.data };
+    if (!isItemVisibleOnWebsite(product, websiteId)) return;
+
+    const categoryId = product.categoryId || product.categoryID || "";
+    const subcategoryId = product.subcategoryId || product.subCategoryId || "";
+
+    if (categoryId && !visibleCategoryIds.has(categoryId)) return;
+    if (!categoryId && product.category && visibleCategoryNames.size) {
+      const categoryKey = String(product.category).toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!visibleCategoryNames.has(categoryKey)) return;
+    }
+    if (subcategoryId && categoryId && !visibleSubcategoryIds.has(`${categoryId}/${subcategoryId}`)) return;
+    if (!subcategoryId && product.subCategory && visibleSubcategoryNames.size) {
+      const subKey = String(product.subCategory).toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!visibleSubcategoryNames.has(subKey)) return;
+    }
+
+    allProducts.push(normalizeProduct(
+      product,
+      categoryId || "master",
+      product.category || "General Products",
+      subcategoryId || "general",
+      product.subCategory || "General Products",
+      `master-${idx}`
+    ));
+  });
+
+  // De-duplicate products while preserving first occurrence.
+  const unique = [];
+  const seen = new Set();
+  for (const product of allProducts) {
+    const key = product.id || product.productId || product.slug;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(product);
+  }
+  return unique;
 }
 
-/**
- * Helpers for cached document retrieval across pages
- */
+export async function fetchCategoriesTree({ companyId = COMPANY_ID, websiteId = WEBSITE_ID } = {}) {
+  const categories = readDocumentsWhereCollection(`companies/${companyId}/categories`);
+  const result = [];
+
+  for (const row of categories) {
+    const category = { id: row.doc_id, ...row.data };
+    if (!isItemVisibleOnWebsite(category, websiteId)) continue;
+
+    const subcategories = [];
+    const subs = readDocumentsWhereCollection(subcategoryPath(category.id));
+
+    for (const subRow of subs) {
+      const sub = { id: subRow.doc_id, ...subRow.data };
+      if (!isItemVisibleOnWebsite(sub, websiteId)) continue;
+
+      const embedded = Array.isArray(sub.products)
+        ? sub.products.filter((p) => isItemVisibleOnWebsite(p, websiteId))
+        : [];
+
+      const childProducts = readDocumentsWhereCollection(
+        `${categoryPath(category.id)}/subcategories/${sub.id}/products`
+      ).map((p) => ({ id: p.doc_id, ...p.data }))
+       .filter((p) => isItemVisibleOnWebsite(p, websiteId));
+
+      subcategories.push({
+        ...sub,
+        products: [...embedded, ...childProducts],
+        productsCount: embedded.length + childProducts.length,
+      });
+    }
+
+    result.push({
+      ...category,
+      subcategories,
+      totalProductsCount: subcategories.reduce((sum, s) => sum + (s.productsCount || 0), 0),
+    });
+  }
+
+  return result;
+}
+
+export async function fetchSitePage(pageType, websiteId = WEBSITE_ID) {
+  return readDocument(`websites/${COMPANY_ID}/${websiteId}/pages/${pageType}`)?.data || null;
+}
+
 export async function fetchHomeData() {
-  return fetchDocCached("websites/rajbiosiscoin/pages/home");
+  return fetchSitePage("home");
 }
 
 export async function fetchContactData() {
-  return fetchDocCached("websites/rajbiosiscoin/pages/contact");
+  return fetchSitePage("contact");
 }
 
 export async function fetchServicesData() {
-  return fetchDocCached("websites/rajbiosiscoin/pages/services");
+  return fetchSitePage("services");
 }
 
 export async function fetchDistrictData(district) {
   if (!district) return null;
-  return fetchDocCached(`websites/rajbiosiscoin/districts/${district}`);
+  return readDocument(`websites/${COMPANY_ID}/${WEBSITE_ID}/districts/${district}`)?.data || null;
+}
+
+export async function fetchDistricts({ companyId = COMPANY_ID, websiteId = WEBSITE_ID } = {}) {
+  try {
+    const rows = readDocumentsWhereCollection(`websites/${companyId}/${websiteId}/districts`);
+    return rows.map((row) => ({ id: row.doc_id, slug: row.doc_id, ...(row.data || {}) }));
+  } catch (error) {
+    console.error("fetchDistricts failed:", error);
+    return [];
+  }
 }

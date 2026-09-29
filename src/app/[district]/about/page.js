@@ -1,5 +1,4 @@
 import AboutPage from "@/app/about/page";
-
 export async function generateMetadata({ params }) {
   const { district = "jaipur" } = await params;
   

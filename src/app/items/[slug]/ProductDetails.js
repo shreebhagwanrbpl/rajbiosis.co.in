@@ -1,11 +1,8 @@
 "use client";
-
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
-
 import { usePathname } from "next/navigation";
-
 import {
     FaPlay,
     FaShareAlt,
@@ -14,16 +11,6 @@ import {
     FaInstagram,
     FaLink,
 } from "react-icons/fa";
-
-import {
-    doc,
-    getDoc,
-    getDocs,
-    addDoc,
-    collection,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { fetchFullCatalog } from "@/lib/data-fetcher";
 import { Download } from "lucide-react";
 const makeSlug = (text = "") =>
     text
@@ -51,8 +38,8 @@ export default function ProductDetails({ slug }) {
     const [downloading, setDownloading] = useState(false);
     const [brochureImage, setBrochureImage] = useState("");
     const [contactData, setContactData] = useState({
-        phone: "+91 9983123469\n+91 9983333489",
-        email: "rajbiosis@yahoo.in",
+        phone: "",
+        email: "",
         address: "F-4, 1st Floor, Plot No. 16, D-Block Tagor Nagar, on Ajmer-Delhi, 200 Feet Bypass Rd, Jaipur, Rajasthan 302021"
     });
 
@@ -93,10 +80,20 @@ export default function ProductDetails({ slug }) {
                 }
 
                 if (!found) {
-                    const allProducts = await fetchFullCatalog();
-                    found = allProducts.find(
-                        (p) => p.slug === slug || p.id === slug || p.productId === slug
-                    );
+                    try {
+                        const prodRes = await fetch("/api/products", {
+                            cache: "no-store",
+                            headers: { "Cache-Control": "no-cache" },
+                        });
+                        if (prodRes.ok) {
+                            const prodData = await prodRes.json();
+                            if (prodData && prodData.success && Array.isArray(prodData.products)) {
+                                found = prodData.products.find(
+                                    (p) => p.slug === slug || p.id === slug || p.productId === slug
+                                );
+                            }
+                        }
+                    } catch (fallbackErr) {}
                 }
 
                 setProduct(found || null);
@@ -116,9 +113,11 @@ export default function ProductDetails({ slug }) {
 
         const loadContact = async () => {
             try {
-                const snap = await getDoc(
-                    doc(db, "websites", "rajbiosiscoin", "pages", "contact")
-                );
+                const snap = await (async () => {
+          const response = await fetch("/api/site-data?pageType=contact", { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
+          const json = await response.json().catch(() => ({}));
+          return { exists: () => !!json.data, data: () => json.data || {} };
+        })();
                 if (snap.exists()) {
                     const info = snap.data().contactInfo || [];
                     const rawPhone = info.find(x => x.label === "Phone" || x.label === "Phone Number")?.value;
@@ -128,9 +127,9 @@ export default function ProductDetails({ slug }) {
                     const rawAddress = info.find(x => x.label === "Address" || x.label === "Office Address")?.value;
                     const addressVal = rawAddress !== undefined && rawAddress !== null ? String(rawAddress) : "";
                     setContactData({
-                        phone: phoneVal || "+91 9983123469\n+91 9983333489",
-                        email: emailVal || "rajbiosis@yahoo.in",
-                        address: addressVal || "F-4, 1st Floor, Plot No. 16, D-Block Tagor Nagar, on Ajmer-Delhi, 200 Feet Bypass Rd, Jaipur, Rajasthan 302021"
+                        phone: phoneVal,
+                        email: emailVal,
+                        address: addressVal
                     });
                 }
             } catch (err) {
@@ -251,22 +250,21 @@ export default function ProductDetails({ slug }) {
         try {
             setSubmitting(true);
 
-            await addDoc(
-                collection(
-                    db,
-                    "websitesQueries",
-                    "rajbiosiscoin",
-                    "productQueries"
-                ),
-                {
-                    ...form,
-                    productName: product.title,
-                    productSlug: product.slug,
-                    brand: product.brand || "",
-                    model: product.model || "",
-                    createdAt: new Date(),
-                }
-            );
+            await fetch("/api/product-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          productName: product?.title || "",
+          productSlug: product?.slug || "",
+          brand: product?.brand || "",
+          model: product?.model || "",
+        }),
+      }).then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.success === false) throw new Error(result.error || "Submission failed");
+        return result;
+      });
 
             toast.success(
                 "Your enquiry has been submitted successfully."
